@@ -1,13 +1,24 @@
+## 🚀ERC-20 STABLE_COIN🚀:
+
+1. Relative (Stibility) Pegged to USD 1.00 $
+  1. Chainlink Price Feeds
+  2. Set a function to exhange ETH & BTC to $$$
+2. Stability mechanism(Minting): Algorithmic (Decentralized)
+  1. People can mint the stable coin by depositing ETH & BTC with enough collateral
+3. Collateral: Exogenous (Crypto)
+  1. wETH
+  2. wBTC
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
 Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
 ## Documentation
 
