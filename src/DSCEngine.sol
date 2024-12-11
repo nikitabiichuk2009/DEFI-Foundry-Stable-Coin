@@ -22,6 +22,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TransferWhenDepositingCollateralFailed();
     error DSCEngine__HealthFactorIsBroken();
     error DSCEngine__TransferWhenMintingDscFailed();
+
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
     mapping(address user => uint256 amountDscMinted) private s_amountDscMinted;
