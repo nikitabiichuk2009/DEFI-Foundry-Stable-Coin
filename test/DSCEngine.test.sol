@@ -43,15 +43,18 @@ contract DSCEngineTest is Test, Helpers {
         assertEq(wethValue, expectedValue);
     }
 
-    function testDepositCollateralEmitsEventAndTransfersCollateral() public {
+    function testCannotDepositWithoutApproval() public {
         vm.startPrank(user);
-        ERC20Mock(weth).approve(address(dscEngine), 10e18);
-        vm.expectEmit(true, true, false, true);
-        emit DSCEngine.CollateralDeposited(user, weth, 10e18);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                address(dscEngine),
+                ERC20Mock(weth).allowance(user, address(dscEngine)),
+                10e18
+            )
+        );
         dscEngine.depositCollateral(weth, 10e18);
         vm.stopPrank();
-
-        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 10e18);
     }
 
     function testDepositCollateralRequiresNonZeroAmount() public {
@@ -71,6 +74,17 @@ contract DSCEngineTest is Test, Helpers {
         vm.stopPrank();
     }
 
+    function testDepositCollateralEmitsEventAndTransfersCollateral() public {
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dscEngine), 10e18);
+        vm.expectEmit(true, true, false, true);
+        emit DSCEngine.CollateralDeposited(user, weth, 10e18);
+        dscEngine.depositCollateral(weth, 10e18);
+        vm.stopPrank();
+
+        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 10e18);
+    }
+
     function testMintDscRequiresAmountGreaterThanZero() public {
         vm.startPrank(user);
         vm.expectRevert(DSCEngine.DSCEngine__AmountCannotBeZero.selector);
@@ -82,6 +96,17 @@ contract DSCEngineTest is Test, Helpers {
         vm.startPrank(user);
         vm.expectRevert(DSCEngine.DSCEngine__HealthFactorIsBroken.selector);
         dscEngine.mintDsc(100e18);
+        vm.stopPrank();
+    }
+
+    function testFailIfUserTriesToMintMoreThanCollateralAllows() public {
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dscEngine), 10e18);
+        dscEngine.depositCollateral(weth, 10e18);
+
+        vm.expectRevert(DSCEngine.DSCEngine__HealthFactorIsBroken.selector);
+        dscEngine.mintDsc(20000e18);
+
         vm.stopPrank();
     }
 
@@ -118,30 +143,5 @@ contract DSCEngineTest is Test, Helpers {
         vm.stopPrank();
 
         assertTrue(healthFactor >= uint256(1));
-    }
-
-    function testFailIfUserTriesToMintMoreThanCollateralAllows() public {
-        vm.startPrank(user);
-        ERC20Mock(weth).approve(address(dscEngine), 10e18);
-        dscEngine.depositCollateral(weth, 10e18);
-
-        vm.expectRevert(DSCEngine.DSCEngine__HealthFactorIsBroken.selector);
-        dscEngine.mintDsc(20000e18);
-
-        vm.stopPrank();
-    }
-
-    function testCannotDepositWithoutApproval() public {
-        vm.startPrank(user);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IERC20Errors.ERC20InsufficientAllowance.selector,
-                address(dscEngine),
-                ERC20Mock(weth).allowance(user, address(dscEngine)),
-                10e18
-            )
-        );
-        dscEngine.depositCollateral(weth, 10e18);
-        vm.stopPrank();
     }
 }

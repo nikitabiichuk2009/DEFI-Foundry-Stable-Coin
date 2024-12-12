@@ -111,6 +111,19 @@ contract DecentralizedStableCoinTest is Test {
         dsc.transfer(alice, INITIAL_BALANCE + 1 ether);
     }
 
+    function testApproveWorks() public {
+        uint256 approveAmount = 500 ether;
+        vm.prank(alice);
+        dsc.approve(bob, approveAmount);
+        assertEq(dsc.allowance(alice, bob), approveAmount);
+
+        vm.startPrank(bob);
+        dsc.transferFrom(alice, bob, 100 ether);
+        vm.stopPrank();
+
+        assertEq(dsc.allowance(alice, bob), approveAmount - 100 ether);
+    }
+
     function testTransferFromFailsWithInsufficientAllowance() public {
         uint256 initialAllowance = 1000 ether;
         vm.prank(alice);
@@ -232,18 +245,5 @@ contract DecentralizedStableCoinTest is Test {
     function testApproveFailsForZeroSpender() public {
         vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidSpender.selector, address(0)));
         dsc.approve(address(0), 1000 ether);
-    }
-
-    function testApproveWorks() public {
-        uint256 approveAmount = 500 ether;
-        vm.prank(alice);
-        dsc.approve(bob, approveAmount);
-        assertEq(dsc.allowance(alice, bob), approveAmount);
-
-        vm.startPrank(bob);
-        dsc.transferFrom(alice, bob, 100 ether);
-        vm.stopPrank();
-
-        assertEq(dsc.allowance(alice, bob), approveAmount - 100 ether);
     }
 }
