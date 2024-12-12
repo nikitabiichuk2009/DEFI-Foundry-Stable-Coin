@@ -11,6 +11,7 @@ contract DecentralizedStableCoinTest is Test {
 
     address bob = makeAddr("bob");
     address alice = makeAddr("alice");
+    address joe = makeAddr("nikita");
     uint256 constant INITIAL_BALANCE = 1000 ether;
 
     function setUp() external {
@@ -18,6 +19,7 @@ contract DecentralizedStableCoinTest is Test {
 
         dsc.mint(bob, INITIAL_BALANCE);
         dsc.mint(alice, INITIAL_BALANCE);
+        dsc.mint(joe, INITIAL_BALANCE);
     }
 
     function testNameIsCorrect() public view {
@@ -32,9 +34,10 @@ contract DecentralizedStableCoinTest is Test {
         assertEq(dsc.owner(), address(this));
     }
 
-    function testBobAndAliceBalance() public view {
+    function testBobJoeAndAliceBalance() public view {
         assertEq(dsc.balanceOf(bob), INITIAL_BALANCE);
         assertEq(dsc.balanceOf(alice), INITIAL_BALANCE);
+        assertEq(dsc.balanceOf(joe), INITIAL_BALANCE);
     }
 
     function testMintFailsIfNotOwner() public {
@@ -72,8 +75,8 @@ contract DecentralizedStableCoinTest is Test {
         uint256 mintAmount = 1000 ether;
         dsc.mint(address(this), mintAmount);
 
-        // Verify  state
-        assertEq(dsc.totalSupply(), INITIAL_BALANCE * 2 + mintAmount);
+        // Verify state
+        assertEq(dsc.totalSupply(), INITIAL_BALANCE * 3 + mintAmount);
         assertEq(dsc.balanceOf(address(this)), mintAmount);
 
         uint256 burnAmount = 100 ether;
@@ -108,6 +111,24 @@ contract DecentralizedStableCoinTest is Test {
         dsc.transfer(alice, INITIAL_BALANCE + 1 ether);
     }
 
+    function testTransferFromFailsWithInsufficientAllowance() public {
+        uint256 initialAllowance = 1000 ether;
+        vm.prank(alice);
+        dsc.approve(bob, initialAllowance);
+
+        assertEq(dsc.allowance(alice, bob), initialAllowance);
+
+        uint256 transferAmount = 1500 ether;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector, bob, dsc.allowance(alice, bob), transferAmount
+            )
+        );
+        vm.prank(bob);
+        dsc.transferFrom(alice, bob, transferAmount);
+    }
+
     function testAllowanceWorks() public {
         uint256 initialAllowance = 1000 ether;
         vm.prank(alice);
@@ -121,6 +142,37 @@ contract DecentralizedStableCoinTest is Test {
 
         assertEq(dsc.balanceOf(bob), INITIAL_BALANCE + transferAmount);
         assertEq(dsc.balanceOf(alice), INITIAL_BALANCE - transferAmount);
+        assertEq(dsc.allowance(alice, bob), initialAllowance - transferAmount);
+    }
+
+    function testAllowanceWithJoeAsThirdParty() public {
+        uint256 allowanceAmount = 1000 ether;
+        uint256 transferAmount = 500 ether;
+
+        // Step 1: Alice approves Joe to spend her tokens
+        vm.prank(alice);
+        dsc.approve(joe, allowanceAmount);
+
+        assertEq(dsc.allowance(alice, joe), allowanceAmount);
+
+        // Step 2: Joe transfers tokens from Alice to Bob
+        vm.startPrank(joe); // Simulate Joe as the caller
+        dsc.transferFrom(alice, bob, transferAmount);
+        vm.stopPrank();
+
+        assertEq(dsc.balanceOf(alice), INITIAL_BALANCE - transferAmount);
+        assertEq(dsc.balanceOf(bob), INITIAL_BALANCE + transferAmount);
+        assertEq(dsc.allowance(alice, joe), allowanceAmount - transferAmount);
+
+        uint256 overAllowanceAmount = 600 ether;
+        vm.startPrank(joe);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector, joe, dsc.allowance(alice, joe), overAllowanceAmount
+            )
+        );
+        dsc.transferFrom(alice, bob, overAllowanceAmount);
+        vm.stopPrank();
     }
 
     function testTransferOwnershipWorks() public {
@@ -148,5 +200,50 @@ contract DecentralizedStableCoinTest is Test {
         assertEq(dsc.balanceOf(bob), bobInitialBalance - burnAmount);
         assertEq(dsc.totalSupply(), initialSupply - burnAmount);
         assertEq(dsc.allowance(bob, address(this)), 0);
+    }
+
+    function testBurnFromFailsWithoutAllowance() public {
+        uint256 burnAmount = 100 ether;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(IERC20Errors.ERC20InsufficientAllowance.selector, address(this), 0, burnAmount)
+        );
+        dsc.burnFrom(bob, burnAmount);
+    }
+
+    function testBurnFromFailsIfExceedsAllowance() public {
+        uint256 burnAmount = 100 ether;
+
+        vm.startPrank(bob);
+        dsc.approve(address(this), 50 ether);
+        vm.stopPrank();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                address(this),
+                dsc.allowance(bob, address(this)),
+                burnAmount
+            )
+        );
+        dsc.burnFrom(bob, burnAmount);
+    }
+
+    function testApproveFailsForZeroSpender() public {
+        vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InvalidSpender.selector, address(0)));
+        dsc.approve(address(0), 1000 ether);
+    }
+
+    function testApproveWorks() public {
+        uint256 approveAmount = 500 ether;
+        vm.prank(alice);
+        dsc.approve(bob, approveAmount);
+        assertEq(dsc.allowance(alice, bob), approveAmount);
+
+        vm.startPrank(bob);
+        dsc.transferFrom(alice, bob, 100 ether);
+        vm.stopPrank();
+
+        assertEq(dsc.allowance(alice, bob), approveAmount - 100 ether);
     }
 }

@@ -35,6 +35,8 @@ contract DSCEngine is ReentrancyGuard {
         address indexed user, address indexed tokenCollateralAddress, uint256 indexed amountCollateral
     );
 
+    event UserMintedDsc(address indexed user, uint256 amountDscMinted);
+
     modifier amountGreaterThanZero(uint256 amount) {
         if (amount == 0) {
             revert DSCEngine__AmountCannotBeZero();
@@ -65,7 +67,14 @@ contract DSCEngine is ReentrancyGuard {
         i_dsc = DecentralizedStableCoin(dscAddress);
     }
 
-    function depositCollateralAndMintDsc() external {}
+    function depositCollateralAndMintDsc(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountDscToMint
+    ) external amountGreaterThanZero(amountCollateral) amountGreaterThanZero(amountDscToMint) {
+        depositCollateral(tokenCollateralAddress, amountCollateral);
+        mintDsc(amountDscToMint);
+    }
 
     /*
      * @notice Deposit Collateral for a user
@@ -73,7 +82,7 @@ contract DSCEngine is ReentrancyGuard {
      * @param amountCollateral The amount of collateral to deposit
      */
     function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+        public
         amountGreaterThanZero(amountCollateral)
         isAllowedCollateral(tokenCollateralAddress)
         nonReentrant
@@ -95,18 +104,15 @@ contract DSCEngine is ReentrancyGuard {
      * @param amountDscToMint The amount of DSC to mint
      *@notice they must have more collateral value than the minimum threshold
      */
-    function mintDsc(uint256 amountDscToMint) external amountGreaterThanZero(amountDscToMint) nonReentrant {
+    function mintDsc(uint256 amountDscToMint) public amountGreaterThanZero(amountDscToMint) nonReentrant {
         s_amountDscMinted[msg.sender] += amountDscToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
-        bool success = i_dsc.transfer(msg.sender, amountDscToMint);
+        emit UserMintedDsc(msg.sender, amountDscToMint);
+        bool success = i_dsc.mint(msg.sender, amountDscToMint);
         if (!success) {
             revert DSCEngine__TransferWhenMintingDscFailed();
         }
     }
-
-    function burnDsc() external {}
-
-    function liquidateDsc() external {}
 
     function _getAccountInformation(address user)
         private
@@ -155,7 +161,15 @@ contract DSCEngine is ReentrancyGuard {
         }
     }
 
+    function burnDsc() external {}
+
+    function liquidateDsc() external {}
+
     function getHealthFactor(address user) public view returns (uint256) {
         return _getHealthFactor(user);
+    }
+
+    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+        return s_collateralDeposited[user][token];
     }
 }

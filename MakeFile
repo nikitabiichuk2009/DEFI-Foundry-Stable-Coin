@@ -1,6 +1,6 @@
 -include .env
 
-.PHONY: all test deploy
+.PHONY: all
 
 all: build
 
@@ -12,8 +12,11 @@ build-clean: clean build
 build:
 	forge build
 
-test:
-	forge test -vvvv
+test-dsc:
+	forge test --match-path test/DecentralizedStableCoin.test.sol -vvvv
+
+test-dsc-engine:
+	forge test --match-path test/DSCEngine.test.sol -vvvv
 
 format:
 	forge fmt
