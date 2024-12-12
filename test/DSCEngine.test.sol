@@ -32,6 +32,7 @@ contract DSCEngineTest is Test, Helpers {
         dsc.transferOwnership(address(dscEngine));
         vm.stopPrank();
         ERC20Mock(weth).mint(user, 1000 ether);
+        ERC20Mock(wbtc).mint(user, 1000 ether);
     }
 
     function testGetUsdValueOfCollateral() public view {
@@ -40,7 +41,28 @@ contract DSCEngineTest is Test, Helpers {
         uint256 expectedAdjustedPrice = (uint256(ETH_PRICE) * 1e18) / (10 ** uint256(DECIMALS));
         uint256 expectedValue = (expectedAdjustedPrice * ethAmount) / 1e18;
         uint256 wethValue = dscEngine.getUsdValueOfCollateral(weth, ethAmount);
-        assertEq(wethValue, expectedValue);
+        assertEq(wethValue, expectedValue, "Weth value mismatch");
+    }
+
+    function testGetCollateralValueInUsd() public {
+        uint256 ethAmount = 10 ether;
+        uint256 wbtcAmount = 1 ether;
+
+        vm.startPrank(user);
+        ERC20Mock(weth).approve(address(dscEngine), ethAmount);
+        ERC20Mock(wbtc).approve(address(dscEngine), wbtcAmount);
+        dscEngine.depositCollateral(weth, ethAmount);
+        dscEngine.depositCollateral(wbtc, wbtcAmount);
+        vm.stopPrank();
+
+        uint256 expectedAdjustedETHPrice = (uint256(ETH_PRICE) * 1e18) / (10 ** uint256(DECIMALS));
+        uint256 expectedEthValue = (expectedAdjustedETHPrice * ethAmount) / 1e18;
+        uint256 expectedAdjustedBTCPrice = (uint256(BTC_PRICE) * 1e18) / (10 ** uint256(DECIMALS));
+        uint256 expectedWbtcValue = (expectedAdjustedBTCPrice * wbtcAmount) / 1e18;
+        uint256 expectedTotalValue = expectedEthValue + expectedWbtcValue;
+
+        uint256 actualCollateralValue = dscEngine.getCollateralValueInUsd(user);
+        assertEq(actualCollateralValue, expectedTotalValue, "Collateral value does not match expected");
     }
 
     function testCannotDepositWithoutApproval() public {
@@ -82,7 +104,7 @@ contract DSCEngineTest is Test, Helpers {
         dscEngine.depositCollateral(weth, 10e18);
         vm.stopPrank();
 
-        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 10e18);
+        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 10e18, "Collateral balance mismatch");
     }
 
     function testMintDscRequiresAmountGreaterThanZero() public {
@@ -119,8 +141,8 @@ contract DSCEngineTest is Test, Helpers {
         dscEngine.mintDsc(10e18);
         vm.stopPrank();
 
-        assertEq(dsc.balanceOf(user), 10e18);
-        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 100e18);
+        assertEq(dsc.balanceOf(user), 10e18, "DSC balance mismatch");
+        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 100e18, "Collateral balance mismatch");
     }
 
     function testDepositCollateralAndMintDscWorks() public {
@@ -129,8 +151,8 @@ contract DSCEngineTest is Test, Helpers {
         dscEngine.depositCollateralAndMintDsc(weth, 100e18, 10e18);
         vm.stopPrank();
 
-        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 100e18);
-        assertEq(dsc.balanceOf(user), 10e18);
+        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 100e18, "Collateral balance mismatch");
+        assertEq(dsc.balanceOf(user), 10e18, "DSC balance mismatch");
     }
 
     function testGetHealthFactor() public {
