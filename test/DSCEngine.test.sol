@@ -50,6 +50,8 @@ contract DSCEngineTest is Test, Helpers {
         emit DSCEngine.CollateralDeposited(user, weth, 10e18);
         dscEngine.depositCollateral(weth, 10e18);
         vm.stopPrank();
+
+        assertEq(dscEngine.getCollateralBalanceOfUser(user, weth), 10e18);
     }
 
     function testDepositCollateralRequiresNonZeroAmount() public {
