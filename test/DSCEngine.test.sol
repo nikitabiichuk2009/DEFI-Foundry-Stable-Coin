@@ -62,7 +62,6 @@ contract DSCEngineTest is Test, Helpers {
 
     function testDepositCollateralRequiresAllowedCollateral() public {
         address fakeToken = address(0x999);
-
         vm.startPrank(user);
         ERC20Mock(weth).approve(address(dscEngine), 10e18);
         vm.expectRevert(abi.encodeWithSelector(DSCEngine.DSCEngine__NotAllowedCollateral.selector, fakeToken));
