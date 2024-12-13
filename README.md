@@ -1,13 +1,15 @@
-## 🚀ERC-20 STABLE_COIN🚀:
+## 🚀 ERC-20 STABLE_COIN 🚀
 
-1. Relative (Stibility) Pegged to USD 1.00 $
-  1. Chainlink Price Feeds
-  2. Set a function to exhange ETH & BTC to $$$
-2. Stability mechanism(Minting): Algorithmic (Decentralized)
-  1. People can mint the stable coin by depositing ETH & BTC with enough collateral
-3. Collateral: Exogenous (Crypto)
-  1. wETH
-  2. wBTC
+* **Relative (Stability) Pegged to USD 1.00 $**
+    * Chainlink Price Feeds
+    * Set a function to exchange ETH & BTC to $$$ 
+
+* **Stability Mechanism(Minting): Algorithmic (Decentralized)**
+    * People can mint the stable coin by depositing ETH & BTC with enough collateral
+
+* **Collateral: Exogenous (Crypto)**
+    * wETH
+    * wBTC
 
 ## Foundry
 
