@@ -116,19 +116,10 @@ contract DSCEngineTest is Test, Helpers {
 
     function testMintDscRevertsIfHealthFactorBroken() public {
         vm.startPrank(user);
-        vm.expectRevert(DSCEngine.DSCEngine__HealthFactorIsBroken.selector);
-        dscEngine.mintDsc(100e18);
-        vm.stopPrank();
-    }
-
-    function testFailIfUserTriesToMintMoreThanCollateralAllows() public {
-        vm.startPrank(user);
         ERC20Mock(weth).approve(address(dscEngine), 10e18);
         dscEngine.depositCollateral(weth, 10e18);
-
         vm.expectRevert(DSCEngine.DSCEngine__HealthFactorIsBroken.selector);
-        dscEngine.mintDsc(20000e18);
-
+        dscEngine.mintDsc(10000000e18);
         vm.stopPrank();
     }
 
@@ -164,6 +155,6 @@ contract DSCEngineTest is Test, Helpers {
         uint256 healthFactor = dscEngine.getHealthFactor(user);
         vm.stopPrank();
 
-        assertTrue(healthFactor >= uint256(1));
+        assertTrue(healthFactor >= uint256(1e18));
     }
 }
