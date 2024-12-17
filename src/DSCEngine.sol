@@ -6,6 +6,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {console} from "forge-std/console.sol";
 /*
  * @title DecentralizedStableCoin
  * @author @nikitabiichuk2009
@@ -114,9 +115,6 @@ contract DSCEngine is ReentrancyGuard {
      */
     function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
         private
-        amountGreaterThanZero(amountCollateral)
-        nonReentrant
-        isAllowedCollateral(tokenCollateralAddress)
     {
         if (s_collateralDeposited[from][tokenCollateralAddress] < amountCollateral) {
             revert DSCEngine__InsufficientRedeemAmount(
@@ -140,18 +138,14 @@ contract DSCEngine is ReentrancyGuard {
         _redeemCollateral(tokenCollateralAddress, amountCollateral, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender);
     }
+
     /*
      * @notice Burn DSC for a user
      * @param amountDscToBurn The amount of DSC to burn
      */
-
-    function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom)
-        public
-        amountGreaterThanZero(amountDscToBurn)
-        nonReentrant
-    {
-        if (s_amountDscMinted[msg.sender] < amountDscToBurn) {
-            revert DSCEngine__InsufficientBurnAmount(s_amountDscMinted[msg.sender], amountDscToBurn);
+    function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) public {
+        if (s_amountDscMinted[onBehalfOf] < amountDscToBurn) {
+            revert DSCEngine__InsufficientBurnAmount(s_amountDscMinted[onBehalfOf], amountDscToBurn);
         }
         s_amountDscMinted[onBehalfOf] -= amountDscToBurn;
         emit UserBurnedDsc(onBehalfOf, amountDscToBurn);
@@ -240,6 +234,7 @@ contract DSCEngine is ReentrancyGuard {
     // if user goes below 1, they are liquidatable
     function _getHealthFactor(address user) private view returns (uint256) {
         (uint256 totalDcsMinted, uint256 totalCollateralValueInUsd) = _getAccountInformation(user);
+        if (totalDcsMinted == 0) return type(uint256).max;
 
         uint256 collateralAdjustedForThreshold = (totalCollateralValueInUsd * LIQUIDATION_THRESHOLD) / 100;
         return (collateralAdjustedForThreshold * 1e18) / totalDcsMinted;
@@ -247,6 +242,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
         uint256 healthFactor = _getHealthFactor(user);
+        console.log("healthFactor", healthFactor);
         if (healthFactor < MIN_HEALTH_FACTOR) {
             revert DSCEngine__HealthFactorIsBroken();
         }
@@ -265,6 +261,8 @@ contract DSCEngine is ReentrancyGuard {
         amountGreaterThanZero(debtToCover)
         isAllowedCollateral(collateralTokenAddress)
     {
+        _revertIfHealthFactorIsBroken(msg.sender);
+
         uint256 userHealthFactorBefore = _getHealthFactor(userToLiquidate);
         if (userHealthFactorBefore >= MIN_HEALTH_FACTOR) {
             revert DSCEngine__HealthFactorIsNotBroken();
@@ -283,11 +281,19 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function getHealthFactor(address user) public view returns (uint256) {
+    function getHealthFactor(address user) external view returns (uint256) {
         return _getHealthFactor(user);
     }
 
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
         return s_collateralDeposited[user][token];
+    }
+
+    function getAccountInformation(address user)
+        external
+        view
+        returns (uint256 totalDcsMinted, uint256 totalCollateralValueInUsd)
+    {
+        return _getAccountInformation(user);
     }
 }
