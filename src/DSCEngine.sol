@@ -296,4 +296,20 @@ contract DSCEngine is ReentrancyGuard {
     {
         return _getAccountInformation(user);
     }
+
+    function getMinHealthFactor() external pure returns (uint256) {
+        return MIN_HEALTH_FACTOR;
+    }
+
+    function getDscStableCoin() external view returns (DecentralizedStableCoin) {
+        return i_dsc;
+    }
+
+    function getLiquidationThreshold() external pure returns (uint256) {
+        return LIQUIDATION_THRESHOLD;
+    }
+
+    function getLiquidationBonus() external pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
 }

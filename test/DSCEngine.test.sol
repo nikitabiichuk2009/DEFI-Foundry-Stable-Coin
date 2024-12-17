@@ -536,4 +536,20 @@ contract DSCEngineTest is Test, Helpers {
         assertEq(totalDcsMinted, 10e18, "Total DSC minted mismatch");
         assertEq(totalCollateralValueInUsd, expectedTotalCollateralValueInUsd, "Total collateral value mismatch");
     }
+
+    function testGetMinHealthFactor() public view {
+        assertEq(dscEngine.getMinHealthFactor(), 1e18, "Min health factor mismatch");
+    }
+
+    function testGetLiquidationThreshold() public view {
+        assertEq(dscEngine.getLiquidationThreshold(), 50, "Liquidation threshold mismatch");
+    }
+
+    function testGetLiquidationBonus() public view {
+        assertEq(dscEngine.getLiquidationBonus(), 10, "Liquidation bonus mismatch");
+    }
+
+    function testGetDscStableCoin() public view {
+        assertEq(address(dscEngine.getDscStableCoin()), address(dsc), "DSC stable coin mismatch");
+    }
 }
