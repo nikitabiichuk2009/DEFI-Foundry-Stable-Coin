@@ -552,4 +552,9 @@ contract DSCEngineTest is Test, Helpers {
     function testGetDscStableCoin() public view {
         assertEq(address(dscEngine.getDscStableCoin()), address(dsc), "DSC stable coin mismatch");
     }
+
+    function testGetAllowedCollateralTokens() public view {
+        assertEq(dscEngine.getAllowedCollateralTokens()[0], weth, "WETH should be allowed");
+        assertEq(dscEngine.getAllowedCollateralTokens()[1], wbtc, "WBTC should be allowed");
+    }
 }
