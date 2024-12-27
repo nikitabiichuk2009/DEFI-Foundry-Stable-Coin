@@ -28,6 +28,9 @@ contract InvariantsTest is StdInvariant, Test {
         (dsc, dsce, config) = deployer.run();
         // targetContract(address(dsce));
         (,, weth, wbtc,) = config.activeNetworkConfig();
+        vm.startPrank(dsc.owner());
+        dsc.transferOwnership(address(dsce));
+        vm.stopPrank();
         handler = new Handler(dsce, dsc);
         targetContract(address(handler));
     }

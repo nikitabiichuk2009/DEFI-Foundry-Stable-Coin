@@ -24,10 +24,7 @@ contract DeployDSC is Script {
         vm.startBroadcast(deployerKey);
         DecentralizedStableCoin dsc = new DecentralizedStableCoin(msg.sender);
         DSCEngine dscEngine = new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
-        if (block.chainid == 11155111) {
-            dsc.transferOwnership(address(dscEngine));
-        }
-
+        // After deployment, transfer ownership of dsc to dscEngine
         vm.stopBroadcast();
         return (dsc, dscEngine, helperConfig);
     }

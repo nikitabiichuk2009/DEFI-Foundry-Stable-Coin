@@ -10,6 +10,7 @@ import {Helpers} from "../script/HelperConfig.s.sol";
 import {ERC20Mock} from "./mocks/ERC20Mock.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {MockV3Aggregator} from "./mocks/MockV3Aggregator.sol";
+import {OracleLib} from "../src/library/OracleLib.sol";
 
 contract DSCEngineTest is Test, Helpers {
     DeployDSC deployer;
@@ -494,6 +495,13 @@ contract DSCEngineTest is Test, Helpers {
         assertGt(userHealthFactorAfter, userHealthFactorBefore, "User health factor should improve after liquidation");
     }
 
+    function testStalePriceFeedReverts() public {
+        vm.warp(block.timestamp + 4 hours);
+
+        vm.expectRevert(OracleLib.OracleLib__StalePrice.selector);
+        dscEngine.getUsdValueOfCollateral(weth, 1 ether);
+    }
+
     function testGetHealthFactor() public {
         vm.startPrank(user);
         ERC20Mock(weth).approve(address(dscEngine), 100e18);
@@ -556,5 +564,9 @@ contract DSCEngineTest is Test, Helpers {
     function testGetAllowedCollateralTokens() public view {
         assertEq(dscEngine.getAllowedCollateralTokens()[0], weth, "WETH should be allowed");
         assertEq(dscEngine.getAllowedCollateralTokens()[1], wbtc, "WBTC should be allowed");
+    }
+
+    function testGetCollateralTokenPriceFeed() public view {
+        assertEq(dscEngine.getCollateralTokenPriceFeed(weth), wethUsdPriceFeedAddress, "WETH price feed mismatch");
     }
 }

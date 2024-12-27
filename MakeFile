@@ -21,5 +21,9 @@ test-dsc-engine:
 format:
 	forge fmt
 
+# Provide your address as sender
+deploy-sepolia:
+	forge script script/DeployDSC.s.sol --rpc-url $(SEPOLIA_RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) --sender 0x6bbC12fa8fC861b31B26Caf4d616cd1d1D8Cfc3D -vvvv
+
 install:
 	forge install openzeppelin/openzeppelin-contracts --no-commit && forge install foundry-rs/forge-std --no-commit && forge install smartcontractkit/chainlink-brownie-contracts --no-commit

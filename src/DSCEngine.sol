@@ -6,7 +6,8 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
-import {console} from "forge-std/console.sol";
+import {OracleLib} from "./library/OracleLib.sol";
+
 /*
  * @title DecentralizedStableCoin
  * @author @nikitabiichuk2009
@@ -62,6 +63,8 @@ contract DSCEngine is ReentrancyGuard {
         }
         _;
     }
+
+    using OracleLib for AggregatorV3Interface;
 
     constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address dscAddress) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
@@ -143,7 +146,7 @@ contract DSCEngine is ReentrancyGuard {
      * @notice Burn DSC for a user
      * @param amountDscToBurn The amount of DSC to burn
      */
-    function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) public {
+    function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) private {
         if (s_amountDscMinted[onBehalfOf] < amountDscToBurn) {
             revert DSCEngine__InsufficientBurnAmount(s_amountDscMinted[onBehalfOf], amountDscToBurn);
         }
@@ -215,7 +218,7 @@ contract DSCEngine is ReentrancyGuard {
         returns (uint256)
     {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[tokenCollateralAddress]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = OracleLib.staleCheckLatestRoundData(priceFeed);
         uint8 decimals = priceFeed.decimals();
         // Convert the price to a 1e18 scale
         uint256 adjustedPrice = (uint256(price) * 1e18) / (10 ** uint256(decimals));
@@ -224,7 +227,7 @@ contract DSCEngine is ReentrancyGuard {
 
     function getTokenAmountFromUsd(address tokenCollateralAddress, uint256 usdAmount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[tokenCollateralAddress]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = OracleLib.staleCheckLatestRoundData(priceFeed);
         uint8 decimals = priceFeed.decimals();
         uint256 adjustedPrice = (uint256(price) * 1e18) / (10 ** uint256(decimals));
         return (usdAmount * 1e18) / adjustedPrice;
@@ -242,7 +245,6 @@ contract DSCEngine is ReentrancyGuard {
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
         uint256 healthFactor = _getHealthFactor(user);
-        console.log("healthFactor", healthFactor);
         if (healthFactor < MIN_HEALTH_FACTOR) {
             revert DSCEngine__HealthFactorIsBroken();
         }
@@ -315,5 +317,9 @@ contract DSCEngine is ReentrancyGuard {
 
     function getAllowedCollateralTokens() external view returns (address[] memory) {
         return s_collateralTokens;
+    }
+
+    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+        return s_priceFeeds[token];
     }
 }
