@@ -123,7 +123,7 @@ contract Handler is Test {
         }
 
         address sender = usersWithCollateral[usersAddressSeed % usersWithCollateral.length];
-        (uint256 totalDscMinted, ) = dsce.getAccountInformation(sender);
+        (uint256 totalDscMinted,) = dsce.getAccountInformation(sender);
 
         if (totalDscMinted == 0) {
             return;
